@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="d3-context-menu.css" />
+  <script type="text/javascript" src="dndTree1.js"> </script>
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <style>
+    /* Style added by Radiela */
+
+    .grid-container {
+      display: grid;
+      grid-template-rows: 455px 100px;
+      background-color: #2196F3;
+    }
+
+    #header{
+      height: 3vw;
+      background-color: rgb(246, 193, 174);
+      background-image: linear-gradient(to top, rgb(246, 193, 174), rgb(252, 250, 249));
+    }
+
+    #upload{
+      grid-template-columns: 50% 20% 30%;
+      background-color: rgb(246, 193, 174);
+      background-image: linear-gradient(to bottom, rgb(246, 193, 174), white);
+    }
+
+    #submit{
+      margin-left: 5vw;
+      background-color:#8cc2ee;
+      border-radius: 25px;
+      height: 3vw;
+      width: 6vw;
+    }
+    #submit:hover{
+      box-shadow: 1px 2px 2px 1px rgb(45, 45, 45);
+      background-color: rgb(83, 246, 175);
+    }
+
+    #reset{
+      margin-left: 3vw;
+      border-radius: 25px;
+      height: 3vw;
+      width: 6vw;
+      border-color: grey;
+    }
+    #reset:hover{
+      box-shadow: 1px 1.5px 1.5px 1px rgb(45, 45, 45);
+      background-color: rgb(233, 242, 177);
+    }
+
+    #save{
+      background-color:#8cc2ee;
+      padding: 0%;
+      height: 4.2vw;
+      width: 12vw;
+      margin-left: 55vw;
+      border-radius: 15px;
+      color: black;
+    }
+    #save:hover{
+      box-shadow: 2px 2.5px 2.5px 2px black;
+    }
+
+    #myFile{
+      background-color:#8cc2ee;
+      margin-left: 2vw;
+      width: 20vw;
+      color:black;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="RenameNodeModal" class="reveal-modal" data-reveal aria-labelledby="modalTitle" aria-hidden="true"
+    role="dialog">
+    <h2 id="modalTitle">Rename Node</h2>
+    <form id="RenameNodeForm">
+      <div class="row">
+        <div class="large-12 columns">
+          <label>Node name
+            <input type="text" class="inputName" id='RenameNodeName' placeholder="node name" />
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="large-8 columns">
+          &nbsp;
+        </div>
+        <div class="large-4 columns">
+          <a href="#" class="button info" onclick="close_rename_node_modal()">Cancel</a>
+          <a href="#" class="button success" onclick="rename_node()">Rename</a>
+        </div>
+      </div>
+    </form>
+    <a class="close-reveal-modal" aria-label="Close">&#215;</a>
+  </div>
+
+  <div id="CreateNodeModal" class="reveal-modal" data-reveal aria-labelledby="modalTitle" aria-hidden="true"
+    role="dialog">
+    <h2 id="modalTitle">Create Node</h2>
+    <form id="CreateNodeForm">
+      <div class="row">
+        <div class="large-12 columns">
+          <label>Node name
+            <input type="text" class="inputName" id='CreateNodeName' placeholder="node name" />
+          </label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="large-8 columns">
+          &nbsp;
+        </div>
+        <div class="large-4 columns">
+          <a href="#" class="button info" onclick="close_create_node_modal()">Cancel</a>
+          <a href="#" class="button success" onclick="create_node()">Create</a>
+        </div>
+      </div>
+    </form>
+    <a class="close-reveal-modal" aria-label="Close">&#215;</a>
+  </div>
+
+  <script src="d3.v3.min.js"></script>
+  <script src="d3-context-menu.js"></script>
+  <script src="underscore-min.js"></script>
+  <script src="jquery.js"></script>
+  <script src="fastclick.js"></script>
+  <script src="foundation.min.js"></script>
+  <script>
+    // for the first initialization
+    $('document').ready(function () {
+      $(document).foundation();
+      $(document).on('opened', '[data-reveal]', function () {
+        var element = $(".inputName:visible").first();
+        element.focus(function () {
+          this.selectionStart = this.selectionEnd = this.value.length;
+        });
+        element.focus();
+      });
+      $('#RenameNodeForm').submit(function (e) {
+        rename_node();
+        return false;
+      });
+      $('#CreateNodeForm').submit(function (e) {
+        create_node();
+        return false;
+      });
+      var treeJSON = d3.json("BT_Model.json", draw_tree);   // Default Tree Model
+    });
+  </script>
+
+  <script>
+    function download(data, fileName, mimeType) {  // Script added by Radiela
+      var D = document,
+        A = arguments,
+        a = D.createElement("a"),
+        d = A[0],
+        n = A[1],
+        t = A[2] || "text/plain";
+
+      // Build a download link
+      a.href = "data:" + mimeType + "charset=utf-8," + escape(data);
+
+      // Save data to file
+      if (window.MSBlobBuilder) {
+        var blob = new MSBlobBuilder();
+        blob.append(data);
+        return navigator.msSaveBlob(blob, fileName);
+      }  /* end if(window.MSBlobBuilder) */
+
+
+      // The download event
+      if ('download' in a) {
+        a.setAttribute("download", n);
+        a.innerHTML = "downloading...";
+        D.body.appendChild(a);
+        setTimeout(function () {
+          var e = D.createEvent("MouseEvents");
+          e.initMouseEvent("click", true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+          a.dispatchEvent(e);
+          D.body.removeChild(a);
+        }, 66);
+        return true;
+      }; /* end if('download' in a) */
+
+      // Do iframe dataURL download: (older W3)
+      var f = D.createElement("iframe");
+      D.body.appendChild(f);
+      f.src = "data:" + (A[2] ? A[2] : "application/octet-stream") + (window.btoa ? ";base64" : "") + "," + (window.btoa ? window.btoa : escape)(strData);
+      setTimeout(function () {
+        D.body.removeChild(f);
+      }, 333);
+      return true;
+    }
+  </script>
+
+  <script>
+    function save() { // Added by Radiela, until END of FILE
+      // Get updated tree form session
+      var tree = sessionStorage.getItem("newTree");
+
+      // Use the download function above
+      var t = download(tree, 'BTree.json', 'application/json');
+    }
+  </script>
+
+  <label id="header">
+    <h4 style="font-family:cursive">Welcome! Model your Behaviour Tree using String names or/and Symbols for Sequence, Selector, and Parallel nodes.</h4>
+  </label>
+  
+  <div class="grid-container">
+    <div id="tree-container"></div>
+    <div id="upload">
+      <script>
+        function send() {    
+          var file = document.getElementById("myFile");   // Uploaded file by user
+          var path = file.value;     // The path of the file
+          console.log(path);
+
+          var file_name = path.substring(12);   // Extract just the file name from the path
+          console.log(file_name);
+          var treeJSON = d3.json(file_name, draw_tree);
+          $('#tree-container').html(treeJSON);  // Replace the previous tree model with selected file
+        }
+      </script>
+      <label id="space" style="margin-top: 0.6vw;"></label>
+      <input type="file" id="myFile" name="filename">
+      <p>   
+        <input type="button" value="Submit" onclick="send()" id="submit">
+        <input type="button" value="Reset" onclick="document.location.reload(true);" id="reset">
+        <button id="save" onclick="save()">Save As</button>
+      </p> 
+    </div>
+  </div>
+
+</body>
+
+</html>
